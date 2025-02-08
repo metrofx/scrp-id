@@ -17,7 +17,7 @@ def extract_url(text):
         # Standard URL pattern
         r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\+.~#?&//=]*',
         # Common messenger URL pattern (when URL is at start or end)
-        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com)/\S+',
+        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com|kompas\.id)/\S+',
         # search.app URLs
         r'https?://(?:www\.)?search\.app/\S+'
     ]
@@ -70,6 +70,17 @@ def scrape_kompas(soup):
 
     return process_paragraphs(paragraphs, skip_phrases)
 
+def scrape_kompasid(soup):
+    content = soup.find('div', class_='contentWrapper')
+    if not content:
+        return "Could not find article content"
+
+    paragraphs = content.find_all('p')
+    skip_phrases = ['baca juga', 'baca:', 'baca :']
+
+    return process_paragraphs(paragraphs, skip_phrases)
+
+
 def process_paragraphs(paragraphs, skip_phrases):
     cleaned_paragraphs = []
     for p in paragraphs:
@@ -120,6 +131,8 @@ def scrape_article(input_text):
             content = scrape_detik(soup)
         elif 'kompas.com' in domain:
             content = scrape_kompas(soup)
+        elif 'kompas.id' in domain:
+            content = scrape_kompasid(soup)
         else:
             content = f"Unsupported news site. Currently supporting: detik.com, kompas.com\nFinal URL: {url}"
 
