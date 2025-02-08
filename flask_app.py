@@ -17,7 +17,7 @@ def extract_url(text):
         # Standard URL pattern
         r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\+.~#?&//=]*',
         # Common messenger URL pattern (when URL is at start or end)
-        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com|kompas\.id)/\S+',
+        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com|kompas\.id|tempo\.co)/\S+',
         # search.app URLs
         r'https?://(?:www\.)?search\.app/\S+'
     ]
@@ -71,7 +71,7 @@ def scrape_kompas(soup):
     return process_paragraphs(paragraphs, skip_phrases)
 
 def scrape_kompasid(soup):
-    content = soup.find('div', class_='contentWrapper')
+    content = soup.find('div', class_='paywall')
     if not content:
         return "Could not find article content"
 
@@ -80,6 +80,25 @@ def scrape_kompasid(soup):
 
     return process_paragraphs(paragraphs, skip_phrases)
 
+def scrape_majalahtempoco(soup):
+    content = soup.find('div', class_='h-[225px]')
+    if not content:
+        return "Could not find article content"
+
+    paragraphs = content.find_all('p')
+    skip_phrases = ['baca juga', 'baca:', 'baca :', 'baca berita']
+
+    return process_paragraphs(paragraphs, skip_phrases)
+
+def scrape_tempoco(soup):
+    content = soup.find('div', class_='space-y-4')
+    if not content:
+        return "Could not find article content"
+
+    paragraphs = content.find_all('p')
+    skip_phrases = ['baca juga', 'baca:', 'baca :', 'baca berita', 'dengarkan artikel', 'bagikan', 'gabung tempo circle', 'pilihan editor']
+
+    return process_paragraphs(paragraphs, skip_phrases)
 
 def process_paragraphs(paragraphs, skip_phrases):
     cleaned_paragraphs = []
@@ -133,8 +152,12 @@ def scrape_article(input_text):
             content = scrape_kompas(soup)
         elif 'kompas.id' in domain:
             content = scrape_kompasid(soup)
+        elif 'majalah.tempo.co' in domain:
+            content = scrape_majalahtempoco(soup)
+        elif domain == 'www.tempo.co':
+            content = scrape_tempoco(soup)
         else:
-            content = f"Unsupported news site. Currently supporting: detik.com, kompas.com\nFinal URL: {url}"
+            content = f"Unsupported news site. Currently supporting: detik.com, kompas.com, tempo.co\nFinal URL: {url}"
 
         og_tags = scrape_og_tags(soup)
         return {'content': content, 'og_tags': og_tags}
