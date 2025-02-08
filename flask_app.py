@@ -17,7 +17,7 @@ def extract_url(text):
         # Standard URL pattern
         r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\+.~#?&//=]*',
         # Common messenger URL pattern (when URL is at start or end)
-        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com|kompas\.id|tempo\.co)/\S+',
+        r'(?:^|\s)(?:https?://)?(?:www\.)?(?:detik\.com|kompas\.com|kompas\.id|tempo\.co|cnnindonesia\.com|sindonews\.com)/\S+',
         # search.app URLs
         r'https?://(?:www\.)?search\.app/\S+'
     ]
@@ -94,11 +94,36 @@ def scrape_tempoco(soup):
     content = soup.find('div', class_='space-y-4')
     if not content:
         return "Could not find article content"
-
     paragraphs = content.find_all('p')
     skip_phrases = ['baca juga', 'baca:', 'baca :', 'baca berita', 'dengarkan artikel', 'bagikan', 'gabung tempo circle', 'pilihan editor']
-
     return process_paragraphs(paragraphs, skip_phrases)
+
+def scrape_cnnindo(soup):
+    content = soup.find('div', class_='detail-wrap')
+    if not content:
+        return "Could not find article content"
+    paragraphs = content.find_all('p')
+    skip_phrases = ['baca juga', 'lihat juga', 'bagikan', 'advertisement', 'scroll to continue']
+    return process_paragraphs(paragraphs, skip_phrases)
+
+def scrape_sindo(soup):
+    content = soup.find('div', class_='detail-desc')
+    if not content:
+        return "Could not find article content"
+    # Replace <br> tags with newlines
+    for br in content.find_all('br'):
+        br.replace_with('\n')
+    # Get text and filter out unwanted phrases
+    skip_phrases = ['baca juga', 'lihat juga', 'bagikan', 'advertisement', 'scroll to continue']
+    text = content.get_text()
+    # Filter out paragraphs containing skip phrases (case insensitive)
+    clean_text = '\n'.join(
+        line for line in text.split('\n')
+        if not any(phrase in line.lower() for phrase in skip_phrases)
+    )
+    return clean_text.strip()
+
+# END scraper functions
 
 def process_paragraphs(paragraphs, skip_phrases):
     cleaned_paragraphs = []
@@ -156,8 +181,12 @@ def scrape_article(input_text):
             content = scrape_majalahtempoco(soup)
         elif domain == 'www.tempo.co':
             content = scrape_tempoco(soup)
+        elif domain == 'www.cnnindonesia.com':
+            content = scrape_cnnindo(soup)
+        elif 'sindonews.com' in domain:
+            content = scrape_sindo(soup)
         else:
-            content = f"Unsupported news site. Currently supporting: detik.com, kompas.com, tempo.co\nFinal URL: {url}"
+            content = f"Unsupported news site. Currently supporting: detik, kompas, tempo, cnnindo\nFinal URL: {url}"
 
         og_tags = scrape_og_tags(soup)
         return {'content': content, 'og_tags': og_tags}
@@ -206,3 +235,5 @@ def scrape():
         return render_template('index.html', content=content, url=url, og_tags=og_tags)
 
 # No need for if __name__ == '__main__' block in production
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
