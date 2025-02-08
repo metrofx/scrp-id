@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">{{ og_tags.get('og:title', 'Scrpr Reader') }}</title>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta property="og:title" id="og-title" content="{{ og_tags.get('og:title', 'News Scraper') }}">
+    <meta property="og:description" id="og-description" content="{{ og_tags.get('og:description', 'Scrape news articles from Detik and Kompas.') }}">
+    <meta property="og:image" id="og-image" content="{{ og_tags.get('og:image', '') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        #content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        #urlInput {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .share-url {
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 0.7em;
+            color: #666;
+        }
+        .donate {
+            margin-top: 10px;
+            font-size: 0.7em;
+            color: #666;
+            text-align: center;
+            padding: 15px;
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="page-heading">News Scraper</h1>
+
+    <div class="input-group">
+        <input type="url" id="urlInput" placeholder="Enter Kompas or Detik URL here">
+        <button onclick="scrapeUrl()">Scrape</button>
+    </div>
+
+    <div id="content">
+        Enter URL above or use share function to see content
+    </div>
+    <div id="shareUrl" class="share-url"></div>
+    <div id="donate" class="donate"><a href="https://saweria.co/xfortem">Bermanfaat? Dukung dengan urunan hosting rek 🙏</a></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js');
+        }
+
+        async function handleSharedUrl(url) {
+            document.getElementById('content').innerHTML = 'Loading...';
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    document.getElementById('content').textContent = 'Error: ' + data.error;
+                    return;
+                }
+
+                document.getElementById('content').textContent = data.content;
+
+                // Update page title and Open Graph meta tags
+                if (data.og_tags) {
+                    const ogTitle = data.og_tags['og:title'] || 'News Scraper';
+                    const ogDescription = data.og_tags['og:description'] || 'Scrape news articles from Detik and Kompas.';
+                    const ogImage = data.og_tags['og:image'] || '';
+
+                    document.title = ogTitle;
+                    document.getElementById('page-heading').textContent = ogTitle;
+                    document.getElementById('page-title').textContent = ogTitle;
+                    document.getElementById('og-title').setAttribute('content', ogTitle);
+                    document.getElementById('og-description').setAttribute('content', ogDescription);
+                    document.getElementById('og-image').setAttribute('content', ogImage);
+}
+
+                // Generate and display shareable URL
+                const shareableUrl = `${window.location.origin}/scrape?url=${encodeURIComponent(url)}`;
+                document.getElementById('shareUrl').innerHTML = `Permanent link: <a href="${shareableUrl}">${shareableUrl}</a>`;
+            } catch (error) {
+                document.getElementById('content').textContent = 'Error: ' + error;
+            }
+        }
+
+        function scrapeUrl() {
+            const url = document.getElementById('urlInput').value;
+            if (url) {
+                handleSharedUrl(url);
+            }
+        }
+
+        // Handle shared data and URL parameters
+        window.addEventListener('load', function() {
+            // Check for URL parameter first
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlFromParams = urlParams.get('url');
+
+            if (urlFromParams) {
+                const decodedUrl = decodeURIComponent(urlFromParams);
+                document.getElementById('urlInput').value = decodedUrl;
+                handleSharedUrl(decodedUrl);
+            } else if (window.location.hash) {
+                // Fall back to hash if no URL parameter
+                const url = decodeURIComponent(window.location.hash.slice(1));
+                document.getElementById('urlInput').value = url;
+                handleSharedUrl(url);
+            }
+        });
+
+        // Add Enter key support for URL input
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                scrapeUrl();
+            }
+        });
+    </script>
+</body>
+</html>

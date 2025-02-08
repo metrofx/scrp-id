@@ -1,0 +1,24 @@
+{
+    "name": "News Scraper",
+    "short_name": "News Scraper",
+    "start_url": "https://scrp.metromini.net",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#000000",
+    "share_target": {
+        "action": "/",
+        "method": "GET",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    },
+    "icons": [
+        {
+            "src": "/static/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}
