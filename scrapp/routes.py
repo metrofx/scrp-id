@@ -148,12 +148,12 @@ def scrape_article(input_text):
         if not url:
             return "No valid URL found in the input"
 
-        # Check if it's a search.app URL
-        # if 'search.app' in url:
-        #     final_url, response = follow_redirect(url)
-        #     if not final_url:
-        #         return "Error following redirect"
-        #     url = final_url  # Use the final URL for further processing
+        # Check if it's a search.app URL and follow redirect if needed
+        if 'search.app' in url:
+            final_url, response = follow_redirect(url)
+            if not final_url:
+                return "Error following redirect"
+            url = final_url  # Use the final URL for further processing
         else:
             # Regular URL handling
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'}
